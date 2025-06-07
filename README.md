@@ -1,5 +1,7 @@
 <h1 align="center">Hi 👋, I'm Arvin</h1>
-- 📫 How to reach me **arvinantobahtiar@gmail.com**
+
+- 📫 How to reach me arvinantobahtiar@gmail.com
+
 - 📄 Know about my experiences [https://www.linkedin.com/in/arvinanto/](https://www.linkedin.com/in/arvinanto/)
 
 <h3 align="left">Connect with me:</h3>
