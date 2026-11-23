@@ -10,9 +10,11 @@ The script fetches the public contribution calendar GitHub serves to a signed-ou
 
 Both streaks are calculated from every profile-visible calendar year, from the year the GitHub account was created. This does not change the monthly chart's window. A streak counts consecutive UTC dates with at least one contribution. If there is no contribution yet today, the current streak can end yesterday. The workflow checks the whole history on each run; it can pick up changes to past contributions as well as new ones.
 
-Language tags use GitHub's primary language classification for each owned, public repository, excluding forks and archived repositories. They show up to seven programming languages ranked by the number of repositories, not by code volume or proficiency. Notebook formats and markup are omitted; Python inside `.ipynb` files does not count as a Python repository unless GitHub reports Python as its primary language. See [language and icon sources](scripts/LANGUAGE-SOURCES.md).
+Language tags use GitHub's language-bytes API for every repository you own, public or private, excluding forks and archived repositories. Repository names are used only for API requests and are never rendered or printed. Up to seven programming languages are ranked by the number of repositories in which they appear; byte volume and proficiency are not represented. Notebook formats and markup are omitted. See [language and icon sources](scripts/LANGUAGE-SOURCES.md).
 
-The workflow refreshes the monthly chart, both streaks, and the language tags together. It only commits `assets/activity.svg` or `assets/languages.svg` when they change. The public calendar fetch needs no credentials; the workflow uses GitHub's built-in repository token to look up the account creation year and repository languages, and to commit. No personal token or external service is required. Default-branch rules must allow the workflow's push. A bad or incomplete fetch fails the run, preserving the last good published images. If GitHub changes the calendar HTML, the parser may need adjustment.
+Before enabling the workflow, add a repository Actions secret named `REPO_READ_TOKEN` containing a fine-grained personal access token with read-only **Contents** access to the repositories whose languages should count (including private repositories). The workflow uses this token for repository and language data; its built-in token remains used for this repository's activity lookup and commit. Default-branch rules must allow the workflow's push. If GitHub changes the calendar HTML, the activity parser may need adjustment.
+
+The workflow refreshes the monthly chart, both streaks, and language tags together. It only commits `assets/activity.svg` or `assets/languages.svg` when they change.
 
 [GitHub may delay scheduled runs or disable them after 60 days of inactivity in a public repository](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule). Check the Actions tab if a refresh is missed.
 
@@ -21,5 +23,5 @@ The workflow refreshes the monthly chart, both streaks, and the language tags to
 ```sh
 python3 -B -m unittest discover -s tests -v
 python3 -B scripts/activity.py suxeno
-python3 -B scripts/languages.py suxeno
+GH_TOKEN="$(gh auth token)" python3 -B scripts/languages.py suxeno
 ```

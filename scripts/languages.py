@@ -1,4 +1,4 @@
-"""Render primary programming languages from owned public GitHub repositories."""
+"""Render languages found across owned GitHub repositories."""
 import argparse
 from collections import Counter
 from html import escape
@@ -17,26 +17,25 @@ CODE = 'M8 6 2 12l6 6 1.5-1.5L5 12l4.5-4.5zm8 0-1.5 1.5L19 12l-4.5 4.5L16 18l6-6
 DATABASE = 'M12 2C7 2 3 4 3 7v10c0 3 4 5 9 5s9-2 9-5V7c0-3-4-5-9-5zm0 2c4 0 7 1.5 7 3s-3 3-7 3-7-1.5-7-3 3-3 7-3zm7 8c0 1.5-3 3-7 3s-7-1.5-7-3v-2c2 1.3 4.5 2 7 2s5-.7 7-2zm0 5c0 1.5-3 3-7 3s-7-1.5-7-3v-2c2 1.3 4.5 2 7 2s5-.7 7-2z'
 DISPLAY = {'TSQL': 'T-SQL'}
 
-
 def rank_languages(repos: list[dict]) -> list[str]:
     counts: Counter[str] = Counter()
     for repo in repos:
-        if (not isinstance(repo, dict) or 'language' not in repo
-                or any(type(repo.get(flag)) is not bool for flag in ('private', 'fork', 'archived'))):
+        if (not isinstance(repo, dict) or not isinstance(repo.get('languages'), dict)
+                or any(type(repo.get(flag)) is not bool for flag in ('fork', 'archived'))):
             raise ValueError('unexpected repositories response')
-        language = repo['language']
-        if language is None:
+        if repo['fork'] or repo['archived']:
             continue
-        if not isinstance(language, str):
-            raise ValueError('unexpected repository language')
-        if language in PROGRAMMING_LANGUAGES and not (repo['private'] or repo['fork'] or repo['archived']):
-            counts[language] += 1
+        for language in repo['languages']:
+            if not isinstance(language, str):
+                raise ValueError('unexpected repository language')
+            if language in PROGRAMMING_LANGUAGES:
+                counts[language] += 1
     return sorted(counts, key=lambda name: (-counts[name], name.casefold(), name))[:7]
 
 
 def render(languages: list[str]) -> str:
     labels = [DISPLAY.get(language, language) for language in languages]
-    description = ('Primary languages by number of public repositories: ' + ', '.join(labels)
+    description = ('Programming languages by number of repositories: ' + ', '.join(labels)
                    if labels else 'No programming language data')
     tags = []
     width, x, y = 530, 0, 0
@@ -65,18 +64,37 @@ def render(languages: list[str]) -> str:
 
 
 def fetch_repos(login: str) -> list[dict]:
-    headers = {'Accept': 'application/vnd.github+json', 'User-Agent': 'GitHub-profile-language-readme/1.0'}
-    if token := os.environ.get('GH_TOKEN'):
-        headers['Authorization'] = f'Bearer {token}'
+    token = os.environ.get('GH_TOKEN')
+    if not token:
+        raise ValueError('GH_TOKEN is required to read public and private repositories')
+    headers = {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': f'Bearer {token}',
+        'User-Agent': 'GitHub-profile-language-readme/1.0',
+    }
+    with urlopen(Request('https://api.github.com/user', headers=headers), timeout=20) as response:
+        user = json.load(response)
+    if not isinstance(user, dict) or not isinstance(user.get('login'), str) or user['login'].casefold() != login.casefold():
+        raise ValueError('authenticated GitHub account does not match requested login')
     repos = []
     for page in range(1, 101):
-        request = Request(f'https://api.github.com/users/{login}/repos?type=owner&per_page=100&page={page}',
+        request = Request(f'https://api.github.com/user/repos?visibility=all&affiliation=owner&per_page=100&page={page}',
                           headers=headers)
         with urlopen(request, timeout=20) as response:
             data = json.load(response)
             if not isinstance(data, list):
                 raise ValueError('unexpected repositories response')
-            repos.extend(data)
+            for repo in data:
+                if not isinstance(repo, dict) or not isinstance(repo.get('full_name'), str):
+                    raise ValueError('unexpected repositories response')
+                if repo.get('fork') or repo.get('archived'):
+                    continue
+                request = Request(f"https://api.github.com/repos/{repo['full_name']}/languages", headers=headers)
+                with urlopen(request, timeout=20) as language_response:
+                    languages = json.load(language_response)
+                if not isinstance(languages, dict):
+                    raise ValueError('unexpected repository languages response')
+                repos.append({'fork': False, 'archived': False, 'languages': languages})
             if not re.search(r'\brel="next"', response.headers.get('Link', '')):
                 return repos
     raise ValueError('repository pagination exceeded 100 pages')
@@ -95,10 +113,10 @@ def main() -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         if not args.output.is_file() or args.output.read_text(encoding='utf-8') != svg:
             args.output.write_text(svg, encoding='utf-8')
-    except (OSError, ValueError) as error:
-        print(f'Language refresh failed: {error}', file=sys.stderr)
+    except (OSError, ValueError):
+        print('Language refresh failed; check the token, API access, and response.', file=sys.stderr)
         return 1
-    print('Primary languages: ' + (', '.join(DISPLAY.get(lang, lang) for lang in languages) or 'none'))
+    print('Programming languages: ' + (', '.join(DISPLAY.get(lang, lang) for lang in languages) or 'none'))
     return 0
 
 
