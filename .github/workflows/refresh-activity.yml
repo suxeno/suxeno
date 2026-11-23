@@ -2,7 +2,7 @@ name: Refresh profile activity
 
 on:
   schedule:
-    - cron: '23 0 * * *' # 07:23 in Jakarta (WIB)
+    - cron: '23 * * * *'
   workflow_dispatch:
 
 permissions:
