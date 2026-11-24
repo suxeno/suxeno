@@ -34,10 +34,7 @@ class LanguageTests(unittest.TestCase):
         self.assertEqual(root.attrib['height'], '32')
         self.assertIn('No programming language data', ''.join(root.itertext()))
 
-    def test_owner_private_repository_languages_are_included(self):
-        self.assertEqual(rank_languages([repo({'Python': 1})]), ['Python'])
-
-    def test_fetch_repos_paginates_and_fetches_every_repository_language_map(self):
+    def test_fetch_repos_paginates_and_reads_only_owned_public_language_maps_without_auth(self):
         from io import BytesIO
         from unittest.mock import patch
         from scripts.languages import fetch_repos
@@ -55,23 +52,32 @@ class LanguageTests(unittest.TestCase):
 
         requests = []
 
+        base = 'https://api.github.com'
+        listing = f'{base}/users/owner/repos?type=owner&per_page=100&page='
+
+        def entry(full_name, **flags):
+            return {'full_name': full_name, 'private': False, 'fork': False, 'archived': False, **flags}
+
+        responses = {
+            listing + '1': Response([
+                entry('owner/one'), entry('owner/private', private=True),
+                entry('owner/fork', fork=True), entry('owner/archived', archived=True),
+                entry('other/foreign'),
+            ], f'<{listing}2>; rel="next"'),
+            listing + '2': Response([entry('owner/two')]),
+            f'{base}/repos/owner/one/languages': Response({'Rust': 9, 'Python': 3}),
+            f'{base}/repos/owner/two/languages': Response({'Python': 2}),
+        }
+
         def open_request(request, timeout):
             requests.append(request)
-            if request.full_url == 'https://api.github.com/user':
-                return Response({'login': 'owner'})
-            if '/user/repos?' in request.full_url:
-                page = len([r for r in requests if '/user/repos?' in r.full_url])
-                if page == 1:
-                    return Response([{'full_name': 'owner/one', 'fork': False, 'archived': False}],
-                                    '<https://api.github.com/user/repos?page=2>; rel="next"')
-                return Response([{'full_name': 'owner/two', 'fork': False, 'archived': False}])
-            return Response({'Rust': 9, 'Python': 3})
+            return responses[request.full_url]
 
-        with patch.dict('os.environ', {'GH_TOKEN': 'test-token'}), patch('scripts.languages.urlopen', open_request):
+        with patch.dict('os.environ', {'GH_TOKEN': ''}), patch('scripts.languages.urlopen', open_request):
             repos = fetch_repos('owner')
 
         self.assertEqual(len(repos), 2)
         self.assertEqual(rank_languages(repos), ['Python', 'Rust'])
-        self.assertEqual(len(requests), 5)
-        self.assertTrue(all(r.get_header('Authorization') == 'Bearer test-token' for r in requests))
-        self.assertNotIn('owner/one', repr(requests))
+        self.assertCountEqual([r.full_url for r in requests], responses.keys())
+        self.assertTrue(all(r.get_header('Authorization') is None for r in requests))
+        self.assertNotIn('owner/one', repr(repos))

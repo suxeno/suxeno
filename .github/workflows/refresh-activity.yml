@@ -25,7 +25,6 @@ jobs:
       - name: Test and generate the profile SVGs
         env:
           PROFILE_LOGIN: ${{ github.repository_owner }}
-          GH_TOKEN: ${{ secrets.REPO_READ_TOKEN }}
         run: |
           python3 -B -m unittest discover -s tests -v
           python3 -B scripts/activity.py "$PROFILE_LOGIN"

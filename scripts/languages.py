@@ -1,9 +1,8 @@
-"""Render languages found across owned GitHub repositories."""
+"""Render languages found across owned public GitHub repositories."""
 import argparse
 from collections import Counter
 from html import escape
 import json
-import os
 from pathlib import Path
 import re
 import sys
@@ -64,31 +63,29 @@ def render(languages: list[str]) -> str:
 
 
 def fetch_repos(login: str) -> list[dict]:
-    token = os.environ.get('GH_TOKEN')
-    if not token:
-        raise ValueError('GH_TOKEN is required to read public and private repositories')
     headers = {
         'Accept': 'application/vnd.github+json',
-        'Authorization': f'Bearer {token}',
         'User-Agent': 'GitHub-profile-language-readme/1.0',
     }
-    with urlopen(Request('https://api.github.com/user', headers=headers), timeout=20) as response:
-        user = json.load(response)
-    if not isinstance(user, dict) or not isinstance(user.get('login'), str) or user['login'].casefold() != login.casefold():
-        raise ValueError('authenticated GitHub account does not match requested login')
     repos = []
     for page in range(1, 101):
-        request = Request(f'https://api.github.com/user/repos?visibility=all&affiliation=owner&per_page=100&page={page}',
+        request = Request(f'https://api.github.com/users/{login}/repos?type=owner&per_page=100&page={page}',
                           headers=headers)
         with urlopen(request, timeout=20) as response:
             data = json.load(response)
             if not isinstance(data, list):
                 raise ValueError('unexpected repositories response')
             for repo in data:
-                if not isinstance(repo, dict) or not isinstance(repo.get('full_name'), str):
+                if (not isinstance(repo, dict) or not isinstance(repo.get('full_name'), str)
+                        or any(type(repo.get(flag)) is not bool for flag in ('private', 'fork', 'archived'))):
                     raise ValueError('unexpected repositories response')
-                if repo.get('fork') or repo.get('archived'):
+                if repo['private'] or repo['fork'] or repo['archived']:
                     continue
+                owner, _, name = repo['full_name'].partition('/')
+                if owner.casefold() != login.casefold():
+                    continue
+                if not re.fullmatch(r'[A-Za-z0-9_.-]+', name) or name in {'.', '..'}:
+                    raise ValueError('unexpected repository name')
                 request = Request(f"https://api.github.com/repos/{repo['full_name']}/languages", headers=headers)
                 with urlopen(request, timeout=20) as language_response:
                     languages = json.load(language_response)
@@ -114,7 +111,7 @@ def main() -> int:
         if not args.output.is_file() or args.output.read_text(encoding='utf-8') != svg:
             args.output.write_text(svg, encoding='utf-8')
     except (OSError, ValueError):
-        print('Language refresh failed; check the token, API access, and response.', file=sys.stderr)
+        print('Language refresh failed; check GitHub API availability, rate limits, and response.', file=sys.stderr)
         return 1
     print('Programming languages: ' + (', '.join(DISPLAY.get(lang, lang) for lang in languages) or 'none'))
     return 0
