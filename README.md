@@ -1,4 +1,4 @@
-<img src="./assets/terminal.svg" width="640" alt="Arvin (@suxeno): I build data pipelines and work on applied ML projects." />
+<img src="./assets/terminal.svg" width="640" alt="Arvin (@suxeno): I build data pipelines and work on AI projects." />
 
 <img src="./assets/languages.svg" width="530" alt="Programming language tags from my public GitHub repositories" />
 
