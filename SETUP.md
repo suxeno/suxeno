@@ -4,7 +4,7 @@
 
 ## Refreshing on GitHub
 
-Once `.github/workflows/refresh-activity.yml` is on the default branch and GitHub Actions is enabled, **Refresh profile activity** is scheduled hourly at 23 minutes past the hour. To refresh on demand, open **Actions → Refresh profile activity → Run workflow** on the default branch.
+Once `.github/workflows/refresh-activity.yml` is on the default branch and GitHub Actions is enabled, **Refresh profile activity** is scheduled twice a day (00:23 and 12:23 UTC). To refresh on demand, open **Actions → Refresh profile activity → Run workflow** on the default branch.
 
 The script fetches the public contribution calendar GitHub serves to a signed-out visitor. It groups counts by UTC date into the current calendar month and previous 11 months, counts days with at least one contribution, and finds the busiest month in that window (most recent if tied). The current month is marked with `*` because it is still in progress. These are the aggregate counts shown in the profile calendar, not a breakdown by type. GitHub can include anonymized private contribution counts if you enable that visibility setting; the script does not read private repositories or their details. [What GitHub counts](https://docs.github.com/en/account-and-profile/concepts/contributions-on-your-profile).
 
