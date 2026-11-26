@@ -81,3 +81,32 @@ class LanguageTests(unittest.TestCase):
         self.assertCountEqual([r.full_url for r in requests], responses.keys())
         self.assertTrue(all(r.get_header('Authorization') is None for r in requests))
         self.assertNotIn('owner/one', repr(repos))
+
+    def test_fetch_repos_uses_gh_token_when_present(self):
+        from io import BytesIO
+        from unittest.mock import patch
+        from scripts.languages import fetch_repos
+
+        class Response(BytesIO):
+            def __init__(self, payload):
+                super().__init__(json.dumps(payload).encode())
+                self.headers = {}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                self.close()
+
+        requests = []
+
+        def open_request(request, timeout):
+            requests.append(request)
+            return Response([])
+
+        with patch.dict('os.environ', {'GH_TOKEN': 'secret-token'}), patch('scripts.languages.urlopen', open_request):
+            repos = fetch_repos('owner')
+
+        self.assertEqual(repos, [])
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(requests[0].get_header('Authorization'), 'Bearer secret-token')

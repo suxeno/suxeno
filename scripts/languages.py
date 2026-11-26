@@ -3,6 +3,7 @@ import argparse
 from collections import Counter
 from html import escape
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -67,6 +68,8 @@ def fetch_repos(login: str) -> list[dict]:
         'Accept': 'application/vnd.github+json',
         'User-Agent': 'GitHub-profile-language-readme/1.0',
     }
+    if token := os.environ.get('GH_TOKEN'):
+        headers['Authorization'] = f'Bearer {token}'
     repos = []
     for page in range(1, 101):
         request = Request(f'https://api.github.com/users/{login}/repos?type=owner&per_page=100&page={page}',
