@@ -55,7 +55,8 @@ class ActivityTests(unittest.TestCase):
         self.assertEqual(root.attrib['role'], 'img')
         self.assertIn('4 contributions', root.findtext('{http://www.w3.org/2000/svg}desc', default=''))
         self.assertIn('Feb*', card)
-        self.assertIn('month in progress', card)
+        self.assertNotIn('month in progress', card)
+        self.assertNotIn('GitHub profile calendar', card)
         self.assertEqual(card, render(summarize({today: 4}, today)))
 
     def test_all_zero_window_does_not_claim_a_peak(self):

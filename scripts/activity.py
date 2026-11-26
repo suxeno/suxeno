@@ -159,12 +159,12 @@ def render(summary: Summary) -> str:
         labels.append(f'<text x="{x}" y="{baseline - height - 9}" text-anchor="middle" font-size="19" fill="#f5f5f0">{count:,}</text>')
         labels.append(f'<text x="{x}" y="314" text-anchor="middle" font-size="18" fill="#bfbfba">{month_name(month)}{"*" if partial else ""}</text>')
     bars = '\n  '.join(labels)
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="640" height="473" viewBox="0 0 640 473" role="img" aria-labelledby="title desc">
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="640" height="449" viewBox="0 0 640 449" role="img" aria-labelledby="title desc">
   <title id="title">GitHub activity by month and contribution streaks</title>
   <desc id="desc">{escape(desc)}</desc>
-  <rect x="0.5" y="0.5" width="639" height="360" rx="11" fill="#171717" stroke="#454545"/>
-  <rect x="0.5" y="373.5" width="313" height="99" rx="11" fill="#171717" stroke="#454545"/>
-  <rect x="326.5" y="373.5" width="313" height="99" rx="11" fill="#171717" stroke="#454545"/>
+  <rect x="0.5" y="0.5" width="639" height="336" rx="11" fill="#171717" stroke="#454545"/>
+  <rect x="0.5" y="349.5" width="313" height="99" rx="11" fill="#171717" stroke="#454545"/>
+  <rect x="326.5" y="349.5" width="313" height="99" rx="11" fill="#171717" stroke="#454545"/>
   <g font-family="ui-monospace, 'DejaVu Sans Mono', Consolas, monospace">
     <text x="24" y="38" fill="#f5f5f0" font-size="22" font-weight="bold">$ github activity</text>
     <text x="616" y="37" text-anchor="end" fill="#bfbfba" font-size="17">{period}</text>
@@ -182,15 +182,13 @@ def render(summary: Summary) -> str:
     <path d="M24 234h592" stroke="#494949" stroke-dasharray="2 5"/>
     <path d="M24 {baseline}h592" stroke="#777773"/>
     {bars}
-    <text x="24" y="343" fill="#bfbfba" font-size="16">* month in progress</text>
-    <text x="616" y="343" text-anchor="end" fill="#bfbfba" font-size="16">GitHub profile calendar</text>
     <g fill="#bfbfba" font-size="21">
-      <text x="24" y="407">Current streak</text>
-      <text x="350" y="407">Longest streak</text>
+      <text x="24" y="383">Current streak</text>
+      <text x="350" y="383">Longest streak</text>
     </g>
     <g fill="#f5f5f0" font-weight="bold" font-size="33">
-      <text x="24" y="449">{current}</text>
-      <text x="350" y="449">{longest}</text>
+      <text x="24" y="425">{current}</text>
+      <text x="350" y="425">{longest}</text>
     </g>
   </g>
 </svg>
